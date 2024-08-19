@@ -10,5 +10,8 @@ For the swagger, please try to open the swagger.yaml and copy it to [swagger](ht
 
 ## Installation Steps:
 - Clone the repository
-- Run command npm run install
+- Run command npm install
 - Run command docker-compose up
+
+## Testing Tools
+- Postman
