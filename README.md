@@ -1,59 +1,275 @@
-# Take home assignment
-
-
-## Description:
-Build 2 Backend services which manages user’s accounts and transactions (send/withdraw). 
-
-In Account Manager service, we have:
-- User: Login with Id/Password
-- Payment Account: One user can have multiple accounts like credit, debit, loan...
-- Payment History: Records of transactions
-
-In Payment Manager service, we have:
-- Transaction: Include basic information like amount, timestamp, toAddress, status...
-- We have a core transaction process function, that will be executed by `/send` or `/withdraw` API:
-
-```js
-function processTransaction(transaction) {
-    return new Promise((resolve, reject) => {
-        console.log('Transaction processing started for:', transaction);
-
-        // Simulate long running process
-        setTimeout(() => {
-            // After 30 seconds, we assume the transaction is processed successfully
-            console.log('transaction processed for:', transaction);
-            resolve(transaction);
-        }, 30000); // 30 seconds
-    });
-}
-
-// Example usage
-let transaction = { amount: 100, currency: 'USD' }; // Sample transaction input
-processTransaction(transaction)
-    .then((processedTransaction) => {
-        console.log('transaction processing completed for:', processedTransaction);
-    })
-    .catch((error) => {
-        console.error('transaction processing failed:', error);
-    });
-```
-
-Features:
-- Users need to register/log in and then be able to call APIs.
-- APIs for 2 operations send/withdraw. Account statements will be updated after the transaction is successful.
-- APIs to retrieve all accounts and transactions per account of the user.
-- Write Swagger docs for implemented APIs (Optional)
-- Auto Debit/Recurring Payments: Users should be able to set up recurring payments. These payments will automatically be processed at specified intervals. (Optional)
-
-### Tech-stack:
-- Recommend using authentication 3rd party: Supertokens, Supabase...
-- `NodeJs` for API server (`Fastify/Gin` framework is the best choices)
-- `PostgreSQL/MongoDB` for Database. Recommend using `Prisma` for ORM.
-- `Docker` for containerization. Recommend using `docker-compose` for running containers.
- 
-## Target:
-- Good document/README to describe your implementation.
-- Make sure app functionality works as expected. Run and test it well.
-- Containerized and run the app using Docker.
-- Using `docker-compose` or any automation script to run the app with single command is a plus.
-- Job schedulers utilization is a plus
+openapi: 3.0.3
+info:
+  title: Be Assignment - Herwinto Gani
+  description: |-
+    Here is the documentation for the routes and API of the application
+    Everything is tested using postman
+    see dataset/init.sql for databse structures
+  version: 1.0.0
+tags:
+  - name: general
+    description: The general API for application
+  - name: m_user
+    description: The user login table
+  - name: m_account
+    description: The user account table
+  - name: t_transaction
+    description: The transaction table
+  - name: t_transaction_schedule
+    description: The transaction scheduler table
+paths:
+  /login:
+    post:
+      tags:
+        - general
+      summary: Login to the application, this will create a user session
+      description: |-
+        Login to the application, this will create a user session<BR>
+        postman json example<BR>
+        {"email" : "admin", "password" : "admin"}
+  /logout:
+    get:
+      tags:
+        - general
+      summary: Logout from application
+      description: |-
+        Logout from the application, this will delte the session<BR>
+  
+  /user/insert:
+    post:
+      tags:
+        - m_user
+      summary: Add a new user login
+      description: |-
+        Add a new user login <BR>postman json example<BR>
+        {"email" : "admin", "password" : "admin"}
+  /user/get:
+    get:
+      tags:
+        - m_user
+      summary: Get all the user login
+      description: |-
+        Get all the user info from m_user, password will still be hashed
+  /account/insert:
+    post:
+      tags:
+        - m_account
+      summary: Add a new user account for transaction
+      description: |-
+        Add a new user account for transaction, the data need to be unique for the type <BR>
+        postman json example<BR>
+        {"name" : "admintest", "type" : "debit"}<BR>
+        allowed type = "loan","debit","credit","giro"
+  /account/get:
+    get:
+      tags:
+        - m_account
+      summary: Get all the logged in user accounts
+      description: |-
+        Get all the logged user accounts, will only show all the owned account of the logged in user
+  /transaction/get:
+    post:
+      tags:
+        - t_transaction
+      summary: Get all the logged in user transaction
+      description: |-
+        Get all the logged user transaction, will only show all the owned account of the logged in user<BR>
+        postman json example<BR>
+        {"account_id" : "1", "type" : "send", "currency" : "USD"}<BR>
+        type and currency are optional
+  /transaction/send:
+    post:
+      tags:
+        - t_transaction
+      summary: Add a new user transaction with "send" as the type
+      description: |-
+        Add a new user transaction with "send" as the type
+        postman json example<BR>
+        {"account_id" : 1, "amount" : 10000, "currency" : "USD", "send_to" : 5}<BR>
+        send_to is optional
+  /transaction/withdraw:
+    post:
+      tags:
+        - t_transaction
+      summary: Add a new user transaction with "withdraw" as the type
+      description: |-
+        Add a new user transaction with "withdraw" as the type
+        postman json example<BR>
+        {"account_id" : 1, "amount" : 10000, "currency" : "USD"}<BR>
+        send_to will not be saved
+  /transaction/schedule/run:
+    get:
+      tags:
+        - t_transaction_schedule
+      summary: Cronjob route for the transaction schedule
+      description: |-
+        Cronjob for the transaction schedule, can be run manually
+  /transaction/schedule/get:
+    post:
+      tags:
+        - t_transaction_schedule
+      summary: Get all the logged in user transaction scheduler
+      description: |-
+        Get all the logged in user transaction scheduler, Use it to stop a scheduler, will only show all the owned account of the logged in user<BR>
+        postman json example<BR>
+        {"account_id" : "1", "type" : "send", "currency" : "USD"}<BR>
+        type and currency are optional
+  /transaction/schedule/register:
+    post:
+      tags:
+        - t_transaction_schedule
+      summary: Register an auto scheduler for transaction
+      description: |-
+        Register an auto scheduler for transaction, will only works for account of user that is logged in<BR>
+        postman json example<BR>
+        {"account_id" : 1, "amount" : 10000, "currency" : "USD", "send_to" : 5, "repeat_interval_minutes":3}<BR>
+  /transaction/schedule/unregister:
+    post:
+      tags:
+        - t_transaction_schedule
+      summary: Remove an auto scheduler for transaction
+      description: |-
+        Remove an auto scheduler for transaction, will only works for account of user that is logged in, use transaction/schedule/get to get the transaction_schedule_id <BR>
+        postman json example<BR>
+        {"account_id" : 1, "transaction_schedule_id": 1}<BR>
+components:
+  schemas:
+    m_user:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        user_email:
+          type: string
+          format: varchar(50)
+        user_password:
+          type: string
+          format: varchar(200)
+          description: hashed password
+      xml:
+        name: user
+    m_account:
+      type: object
+      properties:
+        account_id:
+          type: integer
+          format: int64
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          description: foreign key from m_user, unique with account_type
+        account_name:
+          type: string
+          format: varchar(50)
+        account_type:
+          type: string
+          format: varchar(50)
+          description: unique with user_id, allowed type = 'debit/credit/loan/giro'
+      xml:
+        name: account
+    t_transaction:
+      type: object
+      properties:
+        transaction_id:
+          type: integer
+          format: int64
+          example: 1
+        account_id:
+          type: integer
+          format: int64
+          description: foreign key from m_account
+        transaction_type:
+          type: string
+          format: varchar(50)
+        transaction_amount:
+          type: integer
+          format: int64
+        transaction_currency:
+          type: string
+          format: varchar(10)
+        transaction_status:
+          type: boolean
+        transaction_send_to:
+          type: integer
+          format: int64
+          description: foreign key from m_account
+        created_at:
+          type: string
+          format: timestamp
+          description: default time created
+      xml:
+        name: transaction
+    t_transaction_schedule:
+      type: object
+      properties:
+        transaction_schedule_id:
+          type: integer
+          format: int64
+          example: 1
+        account_id:
+          type: integer
+          format: int64
+          description: foreign key from m_account
+        transaction_schedule_type:
+          type: string
+          format: varchar(50)
+        transaction_schedule_amount:
+          type: integer
+          format: int64
+        transaction_schedule_currency:
+          type: string
+          format: varchar(10)
+        transaction_schedule_status:
+          type: boolean
+        transaction_schedule_send_to:
+          type: integer
+          format: int64
+          description: foreign key from m_account
+        created_at:
+          type: string
+          format: timestamp
+          description: default time created
+        repeat_interval_minutes:
+          type: integer
+          format: int64
+          description: timing to repeat the transaction
+        repeated_at:
+          type: string
+          format: timestamp
+          description: time since last transaction is created
+      xml:
+        name: transaction_schedule
+  requestBodies:
+    Pet:
+      description: Pet object that needs to be added to the store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Pet'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Pet'
+    UserArray:
+      description: List of user object
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://petstore3.swagger.io/oauth/authorize
+          scopes:
+            write:pets: modify pets in your account
+            read:pets: read your pets
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
